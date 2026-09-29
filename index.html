@@ -959,6 +959,43 @@ footer{border-top:1px solid var(--hair)!important}
   #evCar .ev-grid.one{padding-inline:4%}
 }
 
+/* =================== AJUSTES MÓVIL =================== */
+@media (max-width:760px){
+  /* tarjetas de eventos: foto más baja, info visible */
+  #evCar .ev-grid.one{padding-inline:0}
+  #evCar .ev-grid.one .ev-media,.drow.open .dmore .ev-media{aspect-ratio:4/3!important;max-height:40svh;width:100%}
+  #evCar .ev-grid.one .ev-media video{object-position:50% 35%}
+  #evCar .nx,#evCar .rl{padding:18px 18px 22px!important;gap:14px!important}
+  #evCar .nx-top{gap:10px}
+  #evCar .nx-main{flex-direction:row!important;align-items:center!important;gap:14px!important}
+  #evCar .ev-when.big{padding:6px 10px 6px 8px}
+  #evCar .ev-when.big .d{font-size:52px}
+  #evCar .ev-when.big .m{font-size:9px}
+  #evCar .ev-when.big .m b{font-size:18px}
+  #evCar .nx-titles h3{font-size:30px!important}
+  #evCar .nx-h-img img{width:min(100%,210px)}
+  #evCar .nx-h-img span{font-size:16px;letter-spacing:.3em}
+  #evCar .nx-sub{font-size:16px!important;padding-left:0}
+  #evCar .nx-facts{grid-template-columns:repeat(3,minmax(0,1fr))}
+  #evCar .nx-facts div{padding:8px 8px 8px 0}
+  #evCar .nx-facts div + div{padding-left:8px}
+  #evCar .nx-facts dt{font-size:8px;letter-spacing:.14em}
+  #evCar .nx-facts dd{font-size:14px!important}
+  #evCar .ev-actions{gap:12px}
+  #evCar .nx .btn{width:100%;justify-content:center}
+  #evCar .rl-list .rl-item{padding-block:9px}
+  #evCar .pn-ghost,#evCar .pn-coords,#evCar .pn-dots{display:none}
+  /* dóberman: arriba a la derecha sobre la foto, sin tapar el botón */
+  .pn-dog{left:auto!important;right:10px!important;top:10px!important;bottom:auto!important;width:46px!important;transform:rotate(8deg)!important}
+  .is-perronegro .nx{padding-bottom:30px!important;padding-top:30px!important}
+  .ev-tabs{width:100%}
+  .ev-tabs button{flex:1;padding:10px 8px}
+  /* fechas: vista abierta más compacta */
+  .drow.open .dthumb{max-width:260px!important;margin-inline:auto}
+  /* bio */
+  #bioPhoto.bio-media{width:min(100%,380px)!important}
+}
+
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -1323,6 +1360,7 @@ footer{border-top:1px solid var(--hair)!important}
 const WA = '593999059097'; // WhatsApp de BOHRIZ (para mensajes con texto listo)
 const $ = (s,r=document)=>r.querySelector(s), $$ = (s,r=document)=>[...r.querySelectorAll(s)];
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const FINE=matchMedia('(hover:hover) and (pointer:fine)').matches;
 const hasGsap = typeof window.gsap !== 'undefined';
 const MES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const DIA=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
@@ -1489,8 +1527,9 @@ if(NEXT[0]){ const f0=fd(NEXT[0].d); $('#heroNext').textContent=`Próximo · ${f
   const N=EV_PANELS.length;
   const PERIOD=9000; let cur=0, t0=performance.now(), paused=false, pausedAt=0;
   const fitH=()=>{ const pn=$$('.ev-panel',track)[cur]; if(pn) car.style.height=pn.offsetHeight+'px'; };
-  addEventListener('resize',fitH); setTimeout(fitH,300);
-  const go=k=>{ cur=k; track.style.transform=`translateX(${-100*k}%)`; fitH(); tabs.forEach((b,i)=>b.setAttribute('aria-selected',i===k)); $('#evEyebrow').textContent=EV_PANELS[k].eyebrow; $('#evTitle').textContent=EV_PANELS[k].title; t0=performance.now(); };
+  addEventListener('resize',fitH); setTimeout(fitH,300); $$('.ev-panel',track).forEach((p,j)=>p.classList.toggle('active',j===0));
+  const panels=()=>$$('.ev-panel',track);
+  const go=k=>{ cur=k; track.style.transform=`translateX(${-100*k}%)`; panels().forEach((p,j)=>p.classList.toggle('active',j===k)); setTimeout(()=>$$('.ev',track).forEach(c=>c._upd&&c._upd()),50); fitH(); tabs.forEach((b,i)=>b.setAttribute('aria-selected',i===k)); $('#evEyebrow').textContent=EV_PANELS[k].eyebrow; $('#evTitle').textContent=EV_PANELS[k].title; t0=performance.now(); };
   tabs.forEach(b=>b.addEventListener('click',()=>go(+b.dataset.panel)));
   car.addEventListener('mouseenter',()=>{ paused=true; pausedAt=performance.now(); });
   car.addEventListener('mouseleave',()=>{ paused=false; t0+=performance.now()-pausedAt; });
@@ -1501,30 +1540,48 @@ if(NEXT[0]){ const f0=fd(NEXT[0].d); $('#heroNext').textContent=`Próximo · ${f
   requestAnimationFrame(tick);
 })();
 function initSlides(card,ci=0){
-  const slides=$$('.slide',card), dots=$$('.ev-dots i',card), DUR=4200, MAXV=12000; let i=0, paused=false, timer=0;
-  if(slides.length===1){ // un solo video: se repite solo mientras está en pantalla
-    const v=$('video',slides[0]); if(v){ v.loop=true; new IntersectionObserver(([en])=>{ en.isIntersecting&&!reduce?v.play().catch(()=>{}):v.pause(); }).observe(card); }
+  const slides=$$('.slide',card), dots=$$('.ev-dots i',card), DUR=4200, MAXV=12000; let i=0, paused=false, timer=0, inView=false;
+  const panel=card.closest('.ev-panel');
+  const active=()=>inView && card.isConnected && (!panel || panel.classList.contains('active')) && !document.hidden;
+  const vid=k=>slides[k]&&$('video',slides[k]);
+  const prep=k=>{ const v=vid(k); if(v && v.preload!=='auto'){ v.preload='auto'; try{ v.load(); }catch(_){} } };
+  const playV=v=>{ if(!v) return; v.muted=true; v.playsInline=true; const p=v.play(); if(p) p.catch(()=>{}); };
+  if(slides.length===1){ // un solo video: se repite mientras está visible
+    const v=vid(0); if(v){ v.loop=true; prep(0);
+      const upd=()=>{ active()&&!reduce?playV(v):v.pause(); };
+      new IntersectionObserver(([en])=>{ inView=en.isIntersecting; upd(); },{threshold:.25}).observe(card);
+      card._upd=upd; }
     return;
   }
-  const mark=(d,ms)=>{ dots.forEach(x=>x.classList.remove('on')); d.style.setProperty('--dur',ms+'ms'); void d.offsetWidth; d.classList.add('on'); };
-  // duración de cada diapositiva: fotos 4.2 s, videos lo que dure el video (máx. 12 s)
-  const durOf=k=>{ const v=$('video',slides[k]); return v&&v.duration?Math.min(v.duration*1000,MAXV):DUR; };
+  const mark=(d,ms)=>{ if(!d) return; dots.forEach(x=>x.classList.remove('on')); d.style.setProperty('--dur',ms+'ms'); void d.offsetWidth; d.classList.add('on'); };
+  const schedule=ms=>{ clearTimeout(timer); timer=setTimeout(next,ms); };
   const show=(k,extra=0)=>{
-    const old=$('video',slides[i]); if(old) old.pause();
+    const old=vid(i); if(old){ old.pause(); old.onended=null; }
     slides[i].classList.remove('on'); i=k; slides[i].classList.add('on');
-    const v=$('video',slides[i]); if(v){ v.currentTime=0; v.play().catch(()=>{}); }
-    const ms=durOf(i)+extra; mark(dots[i],ms); clearTimeout(timer); timer=setTimeout(next,ms);
+    prep((i+1)%slides.length);
+    const v=vid(i);
+    if(v){
+      prep(i); try{ v.currentTime=0; }catch(_){}
+      const go=()=>{ const ms=v.duration?Math.min(v.duration*1000,MAXV):8000; mark(dots[i],ms); schedule(ms+400); v.onended=()=>schedule(150); };
+      if(v.readyState>=2) go(); else { mark(dots[i],8000); schedule(8000); v.addEventListener('loadeddata',go,{once:true}); }
+      if(active()) playV(v);
+    } else { const ms=DUR+extra; mark(dots[i],ms); schedule(ms); }
   };
-  const next=()=>{ if(!card.isConnected) return; if(paused||reduce){ timer=setTimeout(next,800); return; } show((i+1)%slides.length); };
-  show(0,ci*800);
-  card.addEventListener('mouseenter',()=>{ paused=true; const v=$('video',slides[i]); if(v) v.pause(); });
-  card.addEventListener('mouseleave',()=>{ paused=false; const v=$('video',slides[i]); if(v) v.play().catch(()=>{}); });
+  const next=()=>{ if(!card.isConnected) return; if(paused||reduce||!active()){ schedule(700); return; } show((i+1)%slides.length); };
+  new IntersectionObserver(([en])=>{ inView=en.isIntersecting; const v=vid(i); if(v){ active()&&!paused?playV(v):v.pause(); } },{threshold:.25}).observe(card);
+  card._upd=()=>{ const v=vid(i); if(v){ active()&&!paused?playV(v):v.pause(); } };
+  prep(0); show(0,ci*800);
+  if(FINE){ // en celular el toque no debe dejar el slideshow en pausa
+    card.addEventListener('mouseenter',()=>{ paused=true; const v=vid(i); if(v) v.pause(); });
+    card.addEventListener('mouseleave',()=>{ paused=false; const v=vid(i); if(v&&active()) playV(v); });
+  }
 }
+document.addEventListener('visibilitychange',()=>$$('.ev').forEach(c=>c._upd&&c._upd()));
 $$('.ev-car .ev:not(.ev-recent)').forEach((c,i)=>initSlides(c,i));
 
 /* ================= BIO: foto 3D ================= */
 const BIO_FOTO = '';  // Ruta de una foto del DJ, ej. 'img/bhoriz-cabina.jpg'
-const BIO_VIDEO = 'media/bio/bio-video.mp4'; // Ruta del video 3D del DJ, ej. 'media/bio/bio-video.mp4' (tiene prioridad sobre la foto)
+const BIO_VIDEO = matchMedia('(max-width: 900px)').matches ? 'media/bio/bio-video-m.mp4' : 'media/bio/bio-video.mp4'; // Ruta del video 3D del DJ, ej. 'media/bio/bio-video.mp4' (tiene prioridad sobre la foto)
 if(BIO_VIDEO) $('#bioPhoto').classList.add('is-video');
 $('#bioPhoto').innerHTML = BIO_VIDEO ? `<video id="bioVideo" src="${BIO_VIDEO}" poster="media/bio/bio-video-poster.jpg" muted playsinline preload="auto" aria-label="BOHRIZ en cabina"></video>` : BIO_FOTO ? `<img src="${BIO_FOTO}" alt="BOHRIZ en cabina">` : `<svg viewBox="0 0 400 500" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs>
   <linearGradient id="bb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a0508"/><stop offset=".6" stop-color="#0a0203"/><stop offset="1" stop-color="#030303"/></linearGradient>
@@ -2136,11 +2193,18 @@ addEventListener('resize',()=>{ if(current==='merch') drawFabric(); });
 /* El video avanza y retrocede con el scroll (no se repite solo) */
 const bioVid=$('#bioVideo'); let vidTarget=0, vidRaf=0;
 function scrubVideo(p){
-  if(!bioVid || !bioVid.duration) return;
+  if(!bioVid || !bioVid.duration || bioVid.loop) return;
   vidTarget=Math.max(0,Math.min(1,p))*(bioVid.duration-.04);
   if(!vidRaf) vidRaf=requestAnimationFrame(()=>{ vidRaf=0; if(Math.abs(bioVid.currentTime-vidTarget)>.01) bioVid.currentTime=vidTarget; });
 }
-if(bioVid){ bioVid.loop=false; bioVid.pause(); bioVid.addEventListener('loadedmetadata',()=>{ bioVid.currentTime=0; }); }
+if(bioVid){ bioVid.loop=false; bioVid.muted=true; bioVid.pause(); bioVid.addEventListener('loadedmetadata',()=>{ bioVid.currentTime=0; });
+  // iOS/Android no cargan el video hasta que se reproduce una vez: se "desbloquea" al acercarse
+  let unlocked=false;
+  const unlock=()=>{ if(unlocked) return; unlocked=true; const p=bioVid.play(); if(p) p.then(()=>{ bioVid.pause(); }).catch(()=>{ bioVid.loop=true; });
+    setTimeout(()=>{ if(!bioVid.duration||isNaN(bioVid.duration)){ bioVid.loop=true; bioVid.play().catch(()=>{}); } },3500); };
+  new IntersectionObserver(([e])=>{ if(e.isIntersecting) unlock(); },{rootMargin:'400px 0px'}).observe(bioVid);
+  addEventListener('touchstart',unlock,{once:true,passive:true});
+}
 function initBio(){
   if(!hasGsap || reduce || !window.ScrollTrigger){ if(bioVid) new IntersectionObserver(([e])=>{ if(e.isIntersecting && bioVid.currentTime===0) bioVid.play().catch(()=>{}); }).observe(bioVid); return; }
   gsap.registerPlugin(ScrollTrigger);
